@@ -20,5 +20,5 @@ def build_database(all_files):
         else:
             add_playlist(pid)
 
-
-build_database(all_files)
+# Uncomment to build database from spotify api
+# build_database(all_files)

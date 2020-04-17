@@ -17,7 +17,6 @@ artists_db = spotify_db.artists_db
 # tracks_db.drop()
 # playlists_db.drop()
 # artists_db.drop()
-tracks_db.find_one({'_id': '3e9HZxeyfWwjeyPAMmWSSQ'})
 useless_features = ['type', 'uri', 'track_href', 'analysis_url', 'id']
 
 # before parsing, make sure it's not already in DB
@@ -165,7 +164,8 @@ def remove_local_tracks(tracks, clean_tracks):
                 continue
             clean_tracks[tid] = track
         except:
-            print(f'Song ID not present for: {track}')
+            # print(f'Song ID not present for: {track}')
+            pass
     return clean_tracks
 
 def add_tracks(tracks_to_add, playlist_to_add):

@@ -2,13 +2,8 @@ import twint
 import nest_asyncio
 nest_asyncio.apply()
 import pandas as pd
-from collections import defaultdict, Counter
 import time
 import re
-from pymongo import MongoClient
-client = MongoClient()
-db =client.spotify_db
-playlist_ids = db.playlist_ids
 
 def get_playlist_id(row):
     regex = re.findall(r'\bplaylist\b\/\w*', row)
