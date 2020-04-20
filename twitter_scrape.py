@@ -25,6 +25,7 @@ def scrape_playlists(since=None, until=None):
     except:
         print(f'Failed to complete search for {since}')
         scrape_playlists(since, until)
+        return None
     df = twint.storage.panda.Tweets_df
     df['playlist_id'] = df['tweet'].apply(get_playlist_id)
     df.dropna(subset=['playlist_id'], inplace=True)
@@ -50,4 +51,4 @@ def get_tweets(tid):
     return zip(list(df.tweet), list(geos))
 
 
-# scrape_playlists(since='2020-04-03', until='2020-04-04')
+scrape_playlists(since='2020-03-30', until='2020-03-31')

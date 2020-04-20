@@ -14,13 +14,11 @@ spotify_db = client.spotify_db
 tracks_db = spotify_db.tracks_db
 playlists_db = spotify_db.playlists_db
 artists_db = spotify_db.artists_db
-# tracks_db.drop()
-# playlists_db.drop()
-# artists_db.drop()
+
 useless_features = ['type', 'uri', 'track_href', 'analysis_url', 'id']
 
 # before parsing, make sure it's not already in DB
-def add_playlist(playlist_id):
+def fetch_playlist(playlist_id):
     if playlist_id == '' or playlist_id == None:
         return None
     try:
@@ -32,7 +30,7 @@ def add_playlist(playlist_id):
         desc_lemmas, desc_lang = lemmatize(description, return_lang=True)
         name_lemmas, name_lang = lemmatize(name, return_lang=True)
     except:
-        print(f'Cannot get playlist {playlist_id}')
+        print(f'Invalid Playlist - {playlist_id}')
         return None
 
     playlist_tracks = parse_tracks(results, sp)
