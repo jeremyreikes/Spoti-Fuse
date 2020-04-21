@@ -1,19 +1,18 @@
-from pymongo import MongoClient
 from sklearn.feature_extraction.text import CountVectorizer
 import database_querying as dbq
-from sklearn.metrics.pairwise import linear_kernel
+from sklearn.metrics.pairwise import linear_kernel, cosine_similarity
 from populate_database import add_playlist
 
-def create_playlist_docs():
+def prep_playlists():
     playlist_docs = list()
-    pids = list()
+    pid_index = list()
     playlists = dbq.get_all_playlists()
     for playlist in playlists:
         tracks = playlist['tids']
         doc = ' '.join(tracks)
         playlist_docs.append(doc)
-        pids.append(playlist['_id'])
-    return playlist_docs, pids
+        pid_index.append(playlist['_id'])
+    return playlist_docs, pid_index
 
 def create_playlist_doc(pid, cv):
     playlist = dbq.get_playlist(pid)
@@ -21,26 +20,26 @@ def create_playlist_doc(pid, cv):
     playlist_doc = ' '.join(tracks)
     return cv.transform([playlist_doc])
 
-def init_playlist_matrix():
-    playlist_docs, pids = create_playlist_docs()
+def get_matching_row(matrix, pid=None, tid=None):
+    if tid:
+        index = tid_index.index(tid)
+    elif pid:
+        index = pid_index.index(pid)
+    return matrix[index]
+
+def init_matrix():
+    playlist_docs, pid_index = prep_playlists()
     cv = CountVectorizer(binary=True, lowercase=False)
     csr_mat = cv.fit_transform(playlist_docs)
-    return csr_mat, cv, pids
+    tid_index = cv.get_feature_names()
+    return csr_mat, cv, pid_index, tid_index
 
 # Gets n most similar playlists to pid
-def get_similar_playlists(pid, n=5):
-    try:
-        add_playlist(pid)
-    except:
-        print(f'Invalid Playlist_ID - {pid} - Try Again')
-        return None
-    user_playlist_doc = create_playlist_doc(pid, cv)
-    cosine_similarities = linear_kernel(user_playlist_doc, csr_mat).flatten()
-    related_playlist_indices = cosine_similarities.argsort()[-2:-2-n:-1] # this slice gets the top 5 most similar playlists (most similar is same playlist)
+def get_playlist_recs(related_indices, pid_index):
     recommended_playlists = list()
-    for index in related_playlist_indices:
+    for index in related_indices:
         curr_playlist = list()
-        pid = pids[index]
+        pid = pid_index[index]
         playlist = dbq.get_playlist(pid)
         tids = playlist['tids']
         for tid in tids:
@@ -48,6 +47,48 @@ def get_similar_playlists(pid, n=5):
         recommended_playlists.append(curr_playlist)
     return recommended_playlists
 
-csr_mat, cv, pids = init_playlist_matrix()
-pid = '6TX1GqG8qtlx8DuY4qrGnd'
-recs = get_similar_playlists(pid, n=1)
+def get_track_recs(related_indices, tid_index, original):
+    recommended_tracks = list()
+    for index in related_indices:
+        tid = tid_index[index]
+        track = dbq.get_track_info(tid)
+        recommended_tracks.append(track)
+    return recommended_tracks
+
+def trim_indices(id, related_indices, index):
+    if index[related_indices[0]] == id:
+        return related_indices[1:]
+    else:
+        return related_indices[:-1]
+
+
+csr_mat, cv, pid_index, tid_index = init_matrix() #
+
+def get_recommendations(tid=None, pid=None, n=5):
+    if pid:
+        matrix = csr_mat
+        try:
+            add_playlist(pid)
+            row_to_compare = create_playlist_doc(pid, cv)
+        except:
+            # print(f'Invalid Playlist_ID - {pid} - Try Again')
+            return None
+    elif tid:
+        # Transpose original matrix to get track recommendations
+        matrix = csr_mat.T
+        try:
+            row_to_compare = get_matching_row(matrix, tid=tid)
+        except:
+            print(f'Invalid Track_ID - {tid} - Try Again')
+            return None
+    else:
+        print(f'Please enter a Playlist or Track ID')
+        return None
+    similarities = cosine_similarity(row_to_compare, matrix).flatten()
+    related_indices = similarities.argsort()[-1:-2-n:-1] # this slice gets the top 5 most similar playlists (most similar is same playlist
+    if pid:
+        related_indices = trim_indices(pid, related_indices, pid_index)
+        return get_playlist_recs(related_indices, pid_index)
+    if tid:
+        related_indices = trim_indices(tid, related_indices, tid_index)
+        return get_track_recs(related_indices, tid_index)
