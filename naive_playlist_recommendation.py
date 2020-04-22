@@ -1,31 +1,11 @@
-from pymongo import MongoClient
-client = MongoClient(readPreference = 'secondary')
-db = client.spotify_db
-tracks_db = db.tracks_db
-playlists_db = db.playlists_db
-import pandas as pd
-from collections import Counter
 import database_querying as dbq
-
-def track_frequencies(search_word=None):
-    frequencies = Counter()
-    if search_word:
-        playlists = playlists_db.find({'name_lemmas': search_word})
-    else:
-        playlists = playlist_db.find()
-    # get frequency of song in playlist with 'word' in name
-    for playlist in playlists:
-        tids = playlist['tids']
-        for tid in tids:
-            frequencies[tid] += 1
-    return frequencies
 
 # if song occurs in less than min_occurences playlists, don't consider it.
 def weighted_track_frequencies(search_word=None, min_occurences=None):
-    frequencies = track_frequencies(search_word)
+    frequencies = dbq.get_track_frequencies(search_word)
     to_delete = list()
     for tid in frequencies.keys():
-        track = tracks_db.find_one({'_id': tid})
+        track = dbq.get_track({'_id': tid})
         total_occurences = len(track['pids'])
         frequencies[tid] /= total_occurences
         if min_occurences and min_occurences > total_occurences:

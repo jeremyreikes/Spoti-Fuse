@@ -48,7 +48,7 @@ def get_playlist_recs(related_indices, pid_index):
         recommended_playlists.append(curr_playlist)
     return recommended_playlists
 
-def get_track_recs(related_indices, tid_index, original):
+def get_track_recs(related_indices, tid_index):
     recommended_tracks = list()
     for index in related_indices:
         tid = tid_index[index]
@@ -102,3 +102,7 @@ def svd_recs(data, playlist, pid, cv):
     svd.train(trainset)
     playlist_doc = create_playlist_doc(pid, cv)
     preds = svd.predict(playlist_doc).est
+
+
+recs = get_recommendations(tid='5p7ujcrUXASCNwRaWNHR1C')
+recs

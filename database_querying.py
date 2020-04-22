@@ -7,6 +7,7 @@ tracks_db = spotify_db.tracks_db
 playlists_db = spotify_db.playlists_db
 artists_db = spotify_db.artists_db
 from collections import Counter
+from nlp_helpers import lemmatize
 
 def track_exists(tid):
     return tracks_db.count_documents({'_id': tid}, limit=1) == 1
@@ -29,15 +30,14 @@ def artist_exists(aid):
 def get_artist(aid):
     return artists_db.find_one({'_id': aid})
 
-
 # Use search_word to specify songs from playlists with a particular word in the title
 def get_track_frequencies(search_word=None):
     frequencies = Counter()
     if search_word:
-        playlists = playlists_db.find({'name_lemmas': search_word})
+        lemma = lemmatize(search_word)
+        playlists = playlists_db.find({'name_lemmas': lemma})
     else:
-        playlists = playlists_db.find()
-    # get frequency of song in playlist with 'word' in name
+        playlists = playlist_db.find()
     for playlist in playlists:
         tids = playlist['tids']
         for tid in tids:
