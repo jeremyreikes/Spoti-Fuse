@@ -1,6 +1,6 @@
 from tqdm import tqdm
 from parse_playlist import fetch_playlist
-from database_querying import *
+from database_querying import playlist_exists
 import csv
 path = '/Users/jeremy/Desktop/Spoti-Fuse/pid_raw_data' # use your path
 import glob
@@ -19,9 +19,11 @@ def build_database(all_files):
 
 def add_playlist(pid):
     if playlist_exists(pid):
-        print(f'{pid} already parsed')
+        # print(f'{pid} already parsed')
+        return False
     else:
         fetch_playlist(pid)
+        return True
 
 # Uncomment to build database from spotify api
 # build_database(all_files)

@@ -104,5 +104,4 @@ def svd_recs(data, playlist, pid, cv):
     preds = svd.predict(playlist_doc).est
 
 
-recs = get_recommendations(tid='5p7ujcrUXASCNwRaWNHR1C')
-recs
+# recs = get_recommendations(tid='24Yi9hE78yPEbZ4kxyoXAI')

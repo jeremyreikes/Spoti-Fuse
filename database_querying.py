@@ -21,6 +21,10 @@ def playlist_exists(pid):
 def get_playlist(pid):
     return playlists_db.find_one({'_id': pid})
 
+def get_playlist_tids(pid):
+    playlist = get_playlist(pid)
+    return playlist['tids']
+
 def get_all_playlists():
     return playlists_db.find()
 
