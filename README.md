@@ -23,7 +23,7 @@ Spotifuse produces recommendations via several different implementations of coll
     - Scikit-Surprise is used for an SVD based recommender.  Find songs to add to an existing playlist.  (Module not loading on Mac OS machines as of 4/22/20.  Working on fix.).
 - Song Embeddings
     - Playlists are thought of as documents and songs as words.  The embeddings are trained using Gensim's Word2Vec model, which can then be used for track recommendations.
-    ![song_embedding](screenshots/song_embedding.png)
+    ![song_embedding](screenshots/song_embedding_small.png)
     ![playlist_embedding](screenshots/playlist_embedding.png)
 
 ## Evaluation
