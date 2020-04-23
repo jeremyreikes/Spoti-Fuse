@@ -14,13 +14,17 @@ By using Twint, Spotifuse can bypass Twitter API limits and scrape an (essential
 ## Recommendations
 Spotifuse produces recommendations via several different implementations of collaborative-filtering, each being useful in its own right.  
 - Weighted track frequency
-    - Enter a playlist title and receive the top songs associated with playlists of similar titles.
+    - Enter a playlist title and receive the top songs associated with playlists of similar titles. ![frequency_vis](screenshots/frequency_recs.png)
 - Cosine Similarity
     - Using playlist-song relationships, find the most similar songs or playlists.
+    ![cosine_song](screenshots/cosine_song_recs.png)
+    ![cosine_playlist](screenshots/cosine_playlist_recs.png)
 - Singular Value Decomposition (SVD)
     - Scikit-Surprise is used for an SVD based recommender.  Find songs to add to an existing playlist.  (Module not loading on Mac OS machines as of 4/22/20.  Working on fix.).
 - Song Embeddings
     - Playlists are thought of as documents and songs as words.  The embeddings are trained using Gensim's Word2Vec model, which can then be used for track recommendations.
+    ![song_embedding](screenshots/song_embedding.png)
+    ![playlist_embedding](screenshots/playlist_embedding.png)
 
 ## Evaluation
 Given the sparsity and innate variance of playlists, it's hard to quantitatively evaluate the recommendations.  I'm working on implementing a genre prediction model as it might accurately represent a concept captured by SVD or Word2Vec.
