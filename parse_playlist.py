@@ -2,8 +2,8 @@ from nlp_helpers import lemmatize
 import database_querying as db
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
-import os
 import api_keys
+from collections import OrderedDict
 client_credentials_manager = SpotifyClientCredentials(client_id=api_keys.spotify_client_id,
                                                       client_secret=api_keys.spotify_client_secret)
 from pymongo.errors import BulkWriteError
@@ -20,7 +20,8 @@ useless_features = ['type', 'uri', 'track_href', 'analysis_url', 'id']
 # before parsing, make sure it's not already in DB
 def fetch_playlist(playlist_id):
     if playlist_id == '' or playlist_id == None:
-        return None
+        print(f'Invalid PID: {playlist_id}')
+        return False
     try:
         results = sp.user_playlist(playlist_id = playlist_id, user=None)
         description = results['description']
@@ -30,20 +31,20 @@ def fetch_playlist(playlist_id):
         desc_lemmas, desc_lang = lemmatize(description, return_lang=True)
         name_lemmas, name_lang = lemmatize(name, return_lang=True)
     except:
-        print(f'Invalid Playlist - {playlist_id}')
-        return None
+        print(f'Invalid PID: {playlist_id}')
+        return False
 
-    playlist_tracks = parse_tracks(results, sp)
-    playlist_length = len(playlist_tracks)
-    if playlist_length > 1000 or playlist_length < 3 or desc_lang != 'en' or name_lang != 'en':
+    valid_tracks = get_valid_tracks(results, sp)
+    playlist_length = len(valid_tracks)
+    if playlist_length > 2000 or playlist_length < 2 or desc_lang != 'en' or name_lang != 'en':
         print(f'Too many/few tracks or not english {playlist_id}')
-        return None
+        return False
 
     tracks_to_add = list()
     existing_tids = set()
     artists_to_add = set()
 
-    for tid, track in playlist_tracks.items():
+    for tid, track in valid_tracks.items():
         if not db.track_exists(tid):
             try:
                 track_data = initialize_track(track, playlist_id)
@@ -68,6 +69,7 @@ def fetch_playlist(playlist_id):
     playlist_to_add = add_tracks(tracks_to_add, playlist_to_add)
     playlist_to_add['tids'].extend(list(existing_tids))
     playlists_db.insert_one(playlist_to_add)
+    return True
 
 def add_audio_features(tracks_to_add):
     tids = [track['_id'] for track in tracks_to_add]
@@ -143,28 +145,37 @@ def get_curr_ids(tids, offset):
     return list(set(curr_ids))
 
 
-def parse_tracks(results, sp):
-    '''Ensures track integrity by removing local and no-id tracks.'''
-    clean_tracks = dict()
+def get_valid_tracks(results):
+    '''Ensures track integrity by removing local and no-id tracks.  Creates dict with valid tracks'''
+    valid_tracks = OrderedDict()
     tracks = results['tracks']
-    for track in tracks['items']:
-        clean_tracks = remove_local_tracks(tracks, clean_tracks)
+    valid_tracks = remove_invalid_tracks(tracks, valid_tracks)
     while tracks['next']:
         tracks = sp.next(tracks)
-        clean_tracks = remove_local_tracks(tracks, clean_tracks)
-    return clean_tracks
+        valid_tracks = remove_invalid_tracks(tracks, valid_tracks)
+    return valid_tracks
 
-def remove_local_tracks(tracks, clean_tracks):
+
+def is_valid(track):
+    ''' Helper for parse_tracks '''
+    try:
+        tid = track['track']['id']
+        if track['is_local']:
+            return False
+        return track
+    except:
+        # print(f'Song ID not present for: {track}')
+        return False
+
+def remove_invalid_tracks(tracks, valid_tracks):
+    ''' Helper for parse_tracks '''
     for track in tracks['items']:
-        try:
+        if is_valid(track):
             tid = track['track']['id']
-            if track['is_local']:
-                continue
-            clean_tracks[tid] = track
-        except:
-            # print(f'Song ID not present for: {track}')
-            pass
-    return clean_tracks
+            valid_tracks[tid] = track
+    return valid_tracks
+
+
 
 def add_tracks(tracks_to_add, playlist_to_add):
     if tracks_to_add:
@@ -190,4 +201,4 @@ def add_artists(artists_to_add):
                 try:
                     artists_db.insert_one(artist)
                 except:
-                    print(f'cant insert artist {artist}')
+                    print(f'Cant insert artist {artist}')

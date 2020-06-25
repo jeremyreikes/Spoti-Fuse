@@ -1,5 +1,5 @@
 import spacy
-nlp = spacy.load('en_core_web_sm')
+nlp = spacy.load('en')
 
 def lemmatize(text, return_lang=False):
     doc = nlp(text)
@@ -8,9 +8,8 @@ def lemmatize(text, return_lang=False):
         if token.is_stop or not token.is_alpha:
             continue
         lemma = token.lemma_.strip().lower()
-        if lemma:
+        if lemma and lemma not in lemmas:
             lemmas.append(lemma)
-    lemmas = list(set(lemmas))
     if return_lang:
         return lemmas, doc.lang_
     return lemmas

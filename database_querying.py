@@ -6,9 +6,9 @@ spotify_db = client.spotify_db
 tracks_db = spotify_db.tracks_db
 playlists_db = spotify_db.playlists_db
 artists_db = spotify_db.artists_db
+playlists_db.find_one()
 from collections import Counter
 from nlp_helpers import lemmatize
-
 def track_exists(tid):
     return tracks_db.count_documents({'_id': tid}, limit=1) == 1
 

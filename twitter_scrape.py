@@ -24,6 +24,7 @@ def scrape_playlists(since=None, until=None):
         twint.run.Search(c)
     except:
         print(f'Failed to complete search for {since}')
+        time.sleep(500)
         scrape_playlists(since, until)
         return None
     df = twint.storage.panda.Tweets_df
@@ -34,7 +35,7 @@ def scrape_playlists(since=None, until=None):
     until = since
     since_full = pd.to_datetime(df.iloc[-1]['date']) - pd.DateOffset(1) # subtract a day from since date
     since_arg = str(since_full)[:10]
-    time.sleep(500)
+    #time.sleep(500) Should The time.sleep() be here or in the try:except block?
     scrape_playlists(since_arg, until)
 
 def get_tweets(tid):
@@ -51,4 +52,4 @@ def get_tweets(tid):
     return zip(list(df.tweet), list(geos))
 
 
-scrape_playlists(since='2020-03-30', until='2020-03-31')
+scrape_playlists(since='2020-06-21', until='2020-06-22')

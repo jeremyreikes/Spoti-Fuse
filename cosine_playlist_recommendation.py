@@ -102,6 +102,11 @@ def svd_recs(data, playlist, pid, cv):
     svd.train(trainset)
     playlist_doc = create_playlist_doc(pid, cv)
     preds = svd.predict(playlist_doc).est
+dbq.get_playlist('1Brkw1Qa7byjfanaNdyH6m')
+pid = '0FfrY7bwlxZLBZChI2RNwB'
+recs = get_recommendations(pid=pid)
 
 
-# recs = get_recommendations(tid='24Yi9hE78yPEbZ4kxyoXAI')
+import pyspark
+import keras
+pyspark.__version__

@@ -2,7 +2,7 @@ from tqdm import tqdm
 from parse_playlist import fetch_playlist
 from database_querying import playlist_exists
 import csv
-path = '/Users/jeremy/Desktop/Spoti-Fuse/pid_raw_data' # use your path
+path = '/Users/jeremyreikes/Desktop/Spoti-Fuse/pid_raw_data' # use your path
 import glob
 all_files = glob.glob(path + "/*.csv")
 
@@ -17,13 +17,18 @@ def build_database(all_files):
     for pid in tqdm(list(all_pids)):
         add_playlist(pid)
 
-def add_playlist(pid):
+def add_playlist(pid, update=False):
+    # returns True if the playlist
     if playlist_exists(pid):
         # print(f'{pid} already parsed')
-        return False
-    else:
-        fetch_playlist(pid)
+        if update: # if it exists, update it
+            # try: update
+            # except: print('cant update')
+            pass
         return True
+    else:
+        return fetch_playlist(pid) # returns true if playlist was successfully added
+
 
 # Uncomment to build database from spotify api
 # build_database(all_files)
