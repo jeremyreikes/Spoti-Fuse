@@ -97,7 +97,6 @@ def initialize_track(track, playlist_id):
     track_data['pids'] = list([playlist_id])
     return track_data
 
-
 def fetch_artist_info(artist_ids):
     artist_ids = list(artist_ids)
     artists_data = list()

@@ -62,6 +62,23 @@ def insert_playlist(playlist):
 def add_pid_to_track(tid, pid):
     tracks_db.update_one({'_id': tid}, {'$push': {'pids': pid}})
 
+def add_lyrics_to_track(tid, lyrics):
+    tracks_db.update_one({'_id': tid}, {'$set': {'lyrics': lyrics}})
+
+def get_tracks_without_lyrics():
+    return tracks_db.find({'lyrics': {'$exists': False}}, {'_id': 1})
+
+# def get_unparsed_artists():
+#     return artists_db.find({'name': {'$exists': False}, {}})
+
+def get_parsed_artist_ratio():
+    total = artists_db.count()
+    valid = 0
+    for artist in artists_db.find():
+        if 'name' in artist:
+            valid += 1
+    return valid/total
+
 # Use search_word to specify songs from playlists with a particular word in the title
 def get_track_frequencies(search_word=None):
     frequencies = Counter()
