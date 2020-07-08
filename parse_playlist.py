@@ -3,21 +3,13 @@ import database_querying as db
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 import api_keys
+import datetime
 from collections import OrderedDict
 client_credentials_manager = SpotifyClientCredentials(client_id=api_keys.spotify_client_id,
                                                       client_secret=api_keys.spotify_client_secret)
-from pymongo.errors import BulkWriteError
 sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
-from pymongo import MongoClient
-client = MongoClient()
-spotify_db = client.spotify_db
-tracks_db = spotify_db.tracks_db
-playlists_db = spotify_db.playlists_db
-artists_db = spotify_db.artists_db
-
 useless_features = ['type', 'uri', 'track_href', 'analysis_url', 'id']
 
-# before parsing, make sure it's not already in DB
 def fetch_playlist(playlist_id):
     if playlist_id == '' or playlist_id == None:
         print(f'Invalid PID: {playlist_id}')
@@ -36,13 +28,13 @@ def fetch_playlist(playlist_id):
 
     valid_tracks = get_valid_tracks(results, sp)
     playlist_length = len(valid_tracks)
-    if playlist_length > 2000 or playlist_length < 2 or desc_lang != 'en' or name_lang != 'en':
+    if playlist_length > 2000 or playlist_length <= 1 or desc_lang != 'en' or name_lang != 'en':
         print(f'Too many/few tracks or not english {playlist_id}')
         return False
 
-    tracks_to_add = list()
-    existing_tids = set()
+    tracks_to_add = list() # playlist tracks that don't exist in DB
     artists_to_add = set()
+    playlist_tids = list() # playlist tracks that already exist or are initialized without error
 
     for tid, track in valid_tracks.items():
         if not db.track_exists(tid):
@@ -52,24 +44,22 @@ def fetch_playlist(playlist_id):
                 if not db.artist_exists(artist_id):
                     artists_to_add.add(artist_id)
                 tracks_to_add.append(track_data)
+                playlist_tids.append(tid)
             except:
                 print(f'Error initializing track {tid}')
                 continue
         else:
-            existing_tids.add(tid)
-            tracks_db.update_one({'_id': tid}, {'$push': {'pids': playlist_id}})
+            playlist_tids.append(tid)
+            db.add_pid_to_track(tid, playlist_id)
 
     tracks_to_add = add_audio_features(tracks_to_add)
-    playlist_to_add = dict(_id=playlist_id, name=name, name_lemmas=name_lemmas, owner=owner,
-                           description=description, description_lemmas = desc_lemmas, tids=list())
-    artists_to_add = list(artists_to_add)
-    artists_to_add = fetch_genres(artists_to_add)
-    add_artists(artists_to_add)
-
-    playlist_to_add = add_tracks(tracks_to_add, playlist_to_add)
-    playlist_to_add['tids'].extend(list(existing_tids))
-    playlists_db.insert_one(playlist_to_add)
-    return True
+    playlist_to_add = dict(_id=playlist_id, name=name, name_lemmas=name_lemmas, owner=owner, last_updated=datetime.datetime.now(),
+                           description=description, description_lemmas = desc_lemmas, tids=playlist_tids)
+    artists_to_add = fetch_artist_info(artists_to_add)
+    db.insert_artists(artists_to_add)
+    db.insert_tracks(tracks_to_add)
+    db.insert_playlist(playlist_to_add)
+    return True # returns True if it successfully adds playlist to db, False otherwise
 
 def add_audio_features(tracks_to_add):
     tids = [track['_id'] for track in tracks_to_add]
@@ -108,7 +98,8 @@ def initialize_track(track, playlist_id):
     return track_data
 
 
-def fetch_genres(artist_ids):
+def fetch_artist_info(artist_ids):
+    artist_ids = list(artist_ids)
     artists_data = list()
     for i in range((len(artist_ids) // 50) + 1):
         offset = i*50
@@ -144,8 +135,7 @@ def get_curr_ids(tids, offset):
         curr_ids = tids[offset:]
     return list(set(curr_ids))
 
-
-def get_valid_tracks(results):
+def get_valid_tracks(results, sp):
     '''Ensures track integrity by removing local and no-id tracks.  Creates dict with valid tracks'''
     valid_tracks = OrderedDict()
     tracks = results['tracks']
@@ -155,7 +145,6 @@ def get_valid_tracks(results):
         valid_tracks = remove_invalid_tracks(tracks, valid_tracks)
     return valid_tracks
 
-
 def is_valid(track):
     ''' Helper for parse_tracks '''
     try:
@@ -164,7 +153,6 @@ def is_valid(track):
             return False
         return track
     except:
-        # print(f'Song ID not present for: {track}')
         return False
 
 def remove_invalid_tracks(tracks, valid_tracks):
@@ -174,31 +162,3 @@ def remove_invalid_tracks(tracks, valid_tracks):
             tid = track['track']['id']
             valid_tracks[tid] = track
     return valid_tracks
-
-
-
-def add_tracks(tracks_to_add, playlist_to_add):
-    if tracks_to_add:
-        try:
-            tids = [track['_id'] for track in tracks_to_add]
-            playlist_to_add['tids'].extend(tids)
-            tracks_db.insert_many(tracks_to_add)
-        except:
-            for track in tracks_to_add:
-                try:
-                    playlist_to_add['tids'].append(track['_id'])
-                    tracks_db.insert_one(track)
-                except:
-                    print(f'Cannot insert track: {track}')
-    return playlist_to_add
-
-def add_artists(artists_to_add):
-    if artists_to_add:
-        try:
-            artists_db.insert_many(artists_to_add)
-        except BulkWriteError as bwe:
-            for artist in artists_to_add:
-                try:
-                    artists_db.insert_one(artist)
-                except:
-                    print(f'Cant insert artist {artist}')

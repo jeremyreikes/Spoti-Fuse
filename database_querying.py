@@ -1,14 +1,14 @@
 import warnings
 warnings.filterwarnings('ignore')
 from pymongo import MongoClient
-client = MongoClient(readPreference='secondary')
+client = MongoClient()
 spotify_db = client.spotify_db
 tracks_db = spotify_db.tracks_db
 playlists_db = spotify_db.playlists_db
 artists_db = spotify_db.artists_db
-playlists_db.find_one()
 from collections import Counter
 from nlp_helpers import lemmatize
+
 def track_exists(tid):
     return tracks_db.count_documents({'_id': tid}, limit=1) == 1
 
@@ -33,6 +33,34 @@ def artist_exists(aid):
 
 def get_artist(aid):
     return artists_db.find_one({'_id': aid})
+
+def insert_tracks(tracks):
+    if tracks:
+        try:
+            tracks_db.insert_many(tracks)
+        except:
+            for track in tracks:
+                try:
+                    tracks_db.insert_one(track)
+                except:
+                    print(f'Cannot insert track: {track}')
+
+def insert_artists(artists):
+    if artists:
+        try:
+            artists_db.insert_many(artists)
+        except BulkWriteError as bwe:
+            for artist in artists:
+                try:
+                    artists_db.insert_one(artist)
+                except:
+                    print(f'Cannot insert artist {artist}')
+
+def insert_playlist(playlist):
+    playlists_db.insert_one(playlist)
+
+def add_pid_to_track(tid, pid):
+    tracks_db.update_one({'_id': tid}, {'$push': {'pids': pid}})
 
 # Use search_word to specify songs from playlists with a particular word in the title
 def get_track_frequencies(search_word=None):
