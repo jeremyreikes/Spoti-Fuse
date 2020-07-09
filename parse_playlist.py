@@ -117,13 +117,13 @@ def fetch_artist_info(artist_ids):
                     curr_artists.append({})
         for index, curr_artist in enumerate(curr_artists):
             artist_data = dict()
-            if not curr_artist:
-                artist_data['_id'] = curr_ids[index]
-            else:
+            if curr_artist:
                 artist_data['_id'] = curr_ids[index]
                 artist_data['name'] = curr_artist['name']
                 artist_data['popularity'] = curr_artist['popularity']
                 artist_data['genres'] = curr_artist['genres']
+            else:
+                artist_data = retry_fetch_artist_info(curr_ids[index])
             artists_data.append(artist_data)
     return artists_data
 
@@ -134,21 +134,24 @@ def retry_fetch_artist_info(artist_id):
         artist = sp.artist(artist_id)
     except:
         print(f'Cannot get artist {artist_id}')
-        return
+        return dict(_id = artist_id)
     artist_data = dict()
     if artist:
         artist_data['_id'] = artist_id
         artist_data['name'] = artist['name']
         artist_data['popularity'] = artist['popularity']
         artist_data['genres'] = artist['genres']
-        db.replace_artist(artist_data)
+        return artist_data
     else:
         print(f'Cannot get more info for {artist_id}')
+        return dict(_id = artist_id)
 
+# in case there are still unparsed artists
 def refetch_unparsed_artists():
     unparsed_artists = db.get_unparsed_artists()
     for artist in unparsed_artists:
-        retry_fetch_artist_info(artist['_id'])
+        artist_data = retry_fetch_artist_info(artist['_id'])
+        db.replace_artist(artist_data)
 
 def get_curr_ids(tids, offset):
     try:

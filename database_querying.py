@@ -72,15 +72,15 @@ def add_lyrics_to_track(tid, lyrics):
 def get_tracks_without_lyrics():
     return tracks_db.find({'lyrics': {'$exists': False}}, {'_id': 1})
 
+# Spotify API sometimes fails and returns a 404 on an artist, but then it will work the next day
+# Run get_unparsed_artists_count() every once in a while to verify that all artists are parsed
 def get_unparsed_artists():
     return artists_db.find({'name': {'$exists': False}}, {})
-
 def get_unparsed_artist_count():
     unparsed_artists = get_unparsed_artists()
     return unparsed_artists.count()
 
 # Use search_word to specify songs from playlists with a particular word in the title
-
 def get_track_frequencies(search_words):
     # dict - word, counter
     word_track_frequencies = dict()
@@ -95,10 +95,11 @@ def get_track_frequencies(search_words):
         word_track_frequencies[lemma] = frequencies
     return word_track_frequencies
 
-boo = get_track_frequencies('love Song')
 # given a tid, returns title and artist
 def get_track_info(tid):
     track = tracks_db.find_one({'_id': tid})
     title = track['name']
     artist = artists_db.find_one({'_id': track['artist_id']})
     return (title, artist['name'])
+
+# playlists_db.find(limit=5)[3]
