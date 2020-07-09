@@ -1,30 +1,29 @@
-import database_querying as dbq
-
+import database_querying as db
+from collections import defaultdict, Counter
 # if song occurs in less than min_occurences playlists, don't consider it.
-def weighted_track_frequencies(search_word=None, min_occurences=None):
-    frequencies = dbq.get_track_frequencies(search_word=search_word)
-    to_delete = list()
-    for tid in frequencies.keys():
-        track = dbq.get_track(tid)
-        total_occurences = len(track['pids'])
-        frequencies[tid] /= total_occurences
-        if min_occurences and min_occurences > total_occurences:
-            to_delete.append(tid)
-    for tid in to_delete:
-        del frequencies[tid]
-    return frequencies
+def weighted_track_frequencies(search_words, min_occurences=None):
+    word_track_frequencies = db.get_track_frequencies(search_words)
+    frequency_products = defaultdict(lambda: 1)
+    # need a new dict to combine them
+    for word, tid_counter in word_track_frequencies.items():
+        for tid in tid_counter:
+            total_occurences = len(db.get_track(tid)['pids'])
+            if len(word_track_frequencies) > 1:
+                total_occurences += 1 # add 1 so denominator isn't above 1
+            frequency_products[tid] *= word_track_frequencies[word][tid] / total_occurences
+    return Counter(frequency_products)
 
-def recommend_tracks(word, min_occurences=50, num_tracks=10):
-    frequencies = weighted_track_frequencies(word, min_occurences=min_occurences)
+def recommend_tracks(search_words, min_occurences=50, num_tracks=10):
+    frequencies = weighted_track_frequencies(search_words, min_occurences=min_occurences)
     tracks = frequencies.most_common(num_tracks)
     tids = [track[0] for track in tracks]
     top_tracks = list()
     for tid in tids:
-        track_info = dbq.get_track_info(tid)
+        track_info = db.get_track_info(tid)
         top_tracks.append(track_info)
     return top_tracks
 
-# recs = recommend_tracks('movie')
-# recs
-
-import tensorflow as tf
+recs = recommend_tracks('summer dance')
+recs
+#
+# import tensorflow as tf
