@@ -2,7 +2,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 import database_querying as db
 from sklearn.metrics.pairwise import linear_kernel, cosine_similarity
 from populate_database import add_playlist
-# from surprise import SVD, evaluate
+import surprise
 
 def prep_playlists():
     playlist_docs = list()
@@ -93,17 +93,21 @@ def get_recommendations(tid=None, pid=None, n=5):
         related_indices = trim_indices(tid, related_indices, tid_index)
         return get_track_recs(related_indices, tid_index)
 
-# predicts what songs should be added to playlists
+'''
 def svd_recs(data, playlist, pid, cv):
-    svd = SVD()
-    evaluate(svd, data, measures=['RMSE', 'MAE'])
+    svd = surprise.SVD()
+    reader = surprise.Reader()
+    help(data)
+    help(svd)
+    surprise.evaluate(svd, data, measures=['RMSE', 'MAE'])
     trainset = data.build_full_trainset()
     svd.train(trainset)
     playlist_doc = create_playlist_doc(pid, cv)
     preds = svd.predict(playlist_doc).est
+'''
 
 pid = '5d4FPOzRUnPgoq1TKigtKm'
 tid = '24Yi9hE78yPEbZ4kxyoXAI'
-db.get_track(tid)
+
 recs = get_recommendations(tid=tid, n =5)
 recs
