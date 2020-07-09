@@ -93,16 +93,6 @@ def get_track_frequencies(search_words):
             for tid in tids:
                 frequencies[tid] += 1
         word_track_frequencies[lemma] = frequencies
-    if len(lemmas) > 1: # make sure every search word has at least value =1 occurence
-        # get all keys
-        all_tids = set()
-        for tid_counter in word_track_frequencies.values():
-            all_tids.update(tid_counter.keys())
-        for word, tid_counter in word_track_frequencies.items():
-            for tid in all_tids:
-                word_track_frequencies[word][tid] += 1
-
-
     return word_track_frequencies
 
 boo = get_track_frequencies('love Song')
