@@ -1,5 +1,5 @@
 from sklearn.feature_extraction.text import CountVectorizer
-import database_querying as dbq
+import database_querying as db
 from sklearn.metrics.pairwise import linear_kernel, cosine_similarity
 from populate_database import add_playlist
 # from surprise import SVD, evaluate
@@ -7,7 +7,7 @@ from populate_database import add_playlist
 def prep_playlists():
     playlist_docs = list()
     pid_index = list()
-    playlists = dbq.get_all_playlists()
+    playlists = db.get_all_playlists()
     for playlist in playlists:
         tracks = playlist['tids']
         doc = ' '.join(tracks)
@@ -16,7 +16,7 @@ def prep_playlists():
     return playlist_docs, pid_index
 
 def create_playlist_doc(pid, cv):
-    playlist = dbq.get_playlist(pid)
+    playlist = db.get_playlist(pid)
     tracks = playlist['tids']
     playlist_doc = ' '.join(tracks)
     return cv.transform([playlist_doc])
@@ -41,10 +41,10 @@ def get_playlist_recs(related_indices, pid_index):
     for index in related_indices:
         curr_playlist = list()
         pid = pid_index[index]
-        playlist = dbq.get_playlist(pid)
+        playlist = db.get_playlist(pid)
         tids = playlist['tids']
         for tid in tids:
-            curr_playlist.append(dbq.get_track_info(tid))
+            curr_playlist.append(db.get_track_info(tid))
         recommended_playlists.append(curr_playlist)
     return recommended_playlists
 
@@ -52,7 +52,7 @@ def get_track_recs(related_indices, tid_index):
     recommended_tracks = list()
     for index in related_indices:
         tid = tid_index[index]
-        track = dbq.get_track_info(tid)
+        track = db.get_track_info(tid)
         recommended_tracks.append(track)
     return recommended_tracks
 
@@ -68,11 +68,10 @@ csr_mat, cv, pid_index, tid_index = init_matrix() #
 def get_recommendations(tid=None, pid=None, n=5):
     if pid:
         matrix = csr_mat
-        try:
-            add_playlist(pid)
+        valid_playlist = add_playlist(pid)
+        if valid_playlist:
             row_to_compare = create_playlist_doc(pid, cv)
-        except:
-            # print(f'Invalid Playlist_ID - {pid} - Try Again')
+        else:
             return None
     elif tid:
         # Transpose original matrix to get track recommendations
@@ -102,11 +101,9 @@ def svd_recs(data, playlist, pid, cv):
     svd.train(trainset)
     playlist_doc = create_playlist_doc(pid, cv)
     preds = svd.predict(playlist_doc).est
-dbq.get_playlist('1Brkw1Qa7byjfanaNdyH6m')
-pid = '0FfrY7bwlxZLBZChI2RNwB'
-recs = get_recommendations(pid=pid)
 
-
-import pyspark
-import keras
-pyspark.__version__
+pid = '5d4FPOzRUnPgoq1TKigtKm'
+tid = '24Yi9hE78yPEbZ4kxyoXAI'
+db.get_track(tid)
+recs = get_recommendations(tid=tid, n =5)
+recs
