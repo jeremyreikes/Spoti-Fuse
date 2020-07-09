@@ -71,13 +71,12 @@ def add_lyrics_to_track(tid, lyrics):
 def get_tracks_without_lyrics():
     return tracks_db.find({'lyrics': {'$exists': False}}, {'_id': 1})
 
-def get_unparsed_artist_ratio():
-    total = artists_db.count()
-    unparsed = 0
-    unparsed_artists = artists_db.find({'name': {'$exists': False}}, {})
-    for unparsed_artist in unparsed_artists:
-        unparsed += 1
-    return unparsed/total
+def get_unparsed_artists():
+    return artists_db.find({'name': {'$exists': False}}, {})
+
+def get_unparsed_artist_count():
+    unparsed_artists = get_unparsed_artists()
+    return unparsed_artists.count()
 
 # Use search_word to specify songs from playlists with a particular word in the title
 def get_track_frequencies(search_word=None):

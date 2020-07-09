@@ -1,5 +1,5 @@
 from tqdm import tqdm
-from parse_playlist import fetch_playlist
+from parse_playlist import fetch_playlist, refetch_unparsed_artists
 from database_querying import playlist_exists
 import csv
 path = '/Users/jeremyreikes/Desktop/Spoti-Fuse/pid_raw_data' # use your path
@@ -29,6 +29,13 @@ def add_playlist(pid, update=False):
     else:
         return fetch_playlist(pid) # returns true if playlist was successfully added
 
+# every once in a while an artist will not return anything from API, but will do so the next day
+# Not sure what the bug is but run this every once in a while to reparse them
+def reparse_unparsed_entities():
+    refetch_unparsed_artists()
 
-# Uncomment to build database from spotify api
+
+# Uncomment to build database from spotify api, uncomment reparse_unparsed_entities to ensure database integrity
 # build_database(all_files)
+
+# reparse_unparsed_entities()

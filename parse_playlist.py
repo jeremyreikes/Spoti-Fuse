@@ -127,6 +127,29 @@ def fetch_artist_info(artist_ids):
             artists_data.append(artist_data)
     return artists_data
 
+
+# about .3% of artists are not found by Spotify API on first try.  Retry them here.
+def retry_fetch_artist_info(artist_id):
+    try:
+        artist = sp.artist(artist_id)
+    except:
+        print(f'Cannot get artist {artist_id}')
+        return
+    artist_data = dict()
+    if artist:
+        artist_data['_id'] = artist_id
+        artist_data['name'] = artist['name']
+        artist_data['popularity'] = artist['popularity']
+        artist_data['genres'] = artist['genres']
+        db.replace_artist(artist_data)
+    else:
+        print(f'Cannot get more info for {artist_id}')
+
+def refetch_unparsed_artists():
+    unparsed_artists = db.get_unparsed_artists()
+    for artist in unparsed_artists:
+        retry_fetch_artist_info(artist['_id'])
+
 def get_curr_ids(tids, offset):
     try:
         curr_ids = tids[offset:offset+50]
