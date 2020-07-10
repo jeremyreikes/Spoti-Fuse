@@ -1,9 +1,11 @@
 from tqdm import tqdm
 from parse_playlist import fetch_playlist, refetch_unparsed_artists
-from database_querying import playlist_exists
+import database_querying as db
 import csv
 path = '/Users/jeremyreikes/Desktop/Spoti-Fuse/pid_raw_data' # use your path
 import glob
+from twitter_scrape import get_tweets
+import lyrics
 all_files = glob.glob(path + "/*.csv")
 
 def build_database(all_files):
@@ -19,15 +21,34 @@ def build_database(all_files):
 
 def add_playlist(pid, update=False):
     # returns True if the playlist
-    if playlist_exists(pid):
-        # print(f'{pid} already parsed')
+    if db.playlist_exists(pid):
         if update: # if it exists, update it
-            # try: update
-            # except: print('cant update')
             pass
         return True
     else:
         return fetch_playlist(pid) # returns true if playlist was successfully added
+
+def add_lyrics(tid):
+    track_lyrics = lyrics.fetch_lyrics(tid)
+    if isinstance(track_lyrics, str):
+        db.add_lyrics(tid, track_lyrics)
+
+def add_lyrics_to_all_tracks():
+    all_lyricless_tracks = db.get_tracks_without_lyrics()
+    for track in all_lyricless_tracks:
+        add_lyrics(track['_id'])
+
+def add_tweets(tid):
+    track = db.get_track(tid)
+    if 'tweets' not in track:
+        tweets = get_tweets(tid)
+        db.add_tweets(tweets)
+
+def add_tweets_to_all_tracks():
+    # checks if 'tweets' is in track twice - will have higher runtime
+    all_tweetless_tracks = db.get_tracks_without_tweets()
+    for track in all_tweetless_tracks:
+        add_tweets(track['_id'])
 
 # Uncomment to build database from spotify api, uncomment reparse_unparsed_entities to ensure database integrity
 # refetch_unparsed_artists()

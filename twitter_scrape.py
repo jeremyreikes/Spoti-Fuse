@@ -44,12 +44,14 @@ def get_tweets(tid):
     c.Pandas_clean = True
     c.Hide_output = True
     c.Lang = 'en'
-    c.Limit=1000
     c.Search = f'open.spotify.com/track/{tid}'
+    try:
+        twint.run.Search(c)
+    except:
+        print(f"Couldn't run search for {tid}")
+        return
     df = twint.storage.panda.Tweets_df
-    tweets=  df.tweet
-    geos = df.geo
-    return zip(list(df.tweet), list(geos))
-
-
-scrape_playlists(since='2020-06-21', until='2020-06-22')
+    if df:
+        return list(df.tweet)
+    else:
+        return list()

@@ -66,16 +66,23 @@ def insert_playlist(playlist):
 def add_pid_to_track(tid, pid):
     tracks_db.update_one({'_id': tid}, {'$push': {'pids': pid}})
 
-def add_lyrics_to_track(tid, lyrics):
+def add_lyrics(tid, lyrics):
     tracks_db.update_one({'_id': tid}, {'$set': {'lyrics': lyrics}})
+
+def add_tweets(tid, tweets):
+    tracks_db.update_one({'_id': tid}, {'$set': {'tweets': tweets}})
 
 def get_tracks_without_lyrics():
     return tracks_db.find({'lyrics': {'$exists': False}}, {'_id': 1})
+
+def get_tracks_without_tweets():
+    return tracks_db.find({'tweets': {'$exists': False}}, {'_id': 1})
 
 # Spotify API sometimes fails and returns a 404 on an artist, but then it will work the next day
 # Run get_unparsed_artists_count() every once in a while to verify that all artists are parsed
 def get_unparsed_artists():
     return artists_db.find({'name': {'$exists': False}}, {})
+    
 def get_unparsed_artist_count():
     unparsed_artists = get_unparsed_artists()
     return unparsed_artists.count()
