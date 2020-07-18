@@ -26,6 +26,3 @@ def recommend_tracks(search_words, min_occurences=50, num_tracks=10):
     tracks = frequencies.most_common(num_tracks)
     top_tracks = [db.get_track_info(track[0]) for track in tracks]
     return top_tracks
-
-# recs = recommend_tracks('summer dance')
-# recs

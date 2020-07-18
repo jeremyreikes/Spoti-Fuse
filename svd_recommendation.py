@@ -8,7 +8,7 @@ import numpy as np
 import scipy
 
 
-class SvdRecs:
+class SVD:
     def __init__(self, k=50):
         self.init_matrix()
         self.u, self.s, self.v = svds(self.csr_mat.astype('float'), k = k)
@@ -46,11 +46,11 @@ class SvdRecs:
         return self.csr_mat[index]
 
     # Gets n most similar playlists to pid
-    def get_playlist_recs(self, related_indices, pid_index):
+    def get_playlist_recs(self, related_indices):
         recommended_playlists = list()
         for index in related_indices:
             curr_playlist = list()
-            pid = pid_index[index]
+            pid = self.pid_index[index]
             playlist = db.get_playlist(pid)
             tids = playlist['tids']
             for tid in tids:
@@ -58,10 +58,10 @@ class SvdRecs:
             recommended_playlists.append(curr_playlist)
         return recommended_playlists
 
-    def get_track_recs(self, related_indices, tid_index):
+    def get_track_recs(self, related_indices):
         recommended_tracks = list()
         for index in related_indices:
-            tid = tid_index[index]
+            tid = self.tid_index[index]
             track = db.get_track_info(tid)
             recommended_tracks.append(track)
         return recommended_tracks
@@ -94,6 +94,6 @@ class SvdRecs:
             return None
         related_indices = self.similarities[0].argsort()[-2:-3-n:-1] # this slice gets the top 5 most similar playlists (most similar is same playlist)
         if pid:
-            return self.get_playlist_recs(related_indices, self.pid_index)
+            return self.get_playlist_recs(related_indices)
         if tid:
-            return self.get_track_recs(related_indices, self.tid_index)
+            return self.get_track_recs(related_indices)

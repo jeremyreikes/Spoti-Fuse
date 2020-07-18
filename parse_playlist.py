@@ -10,7 +10,7 @@ client_credentials_manager = SpotifyClientCredentials(client_id=api_keys.spotify
 sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 useless_features = ['type', 'uri', 'track_href', 'analysis_url', 'id']
 
-def fetch_playlist(playlist_id):
+def fetch_playlist(playlist_id, allow_every=False):
     if playlist_id == '' or playlist_id == None:
         print(f'Invalid PID: {playlist_id}')
         return False
@@ -26,9 +26,9 @@ def fetch_playlist(playlist_id):
         print(f'Invalid PID: {playlist_id}')
         return False
 
-    valid_tracks = get_valid_tracks(results, sp)
+    valid_tracks = get_valid_tracks(results)
     playlist_length = len(valid_tracks)
-    if playlist_length > 2000 or playlist_length <= 1 or desc_lang != 'en' or name_lang != 'en':
+    if not allow_every and (playlist_length > 2000 or playlist_length <= 1 or desc_lang != 'en' or name_lang != 'en'):
         print(f'Too many/few tracks or not english {playlist_id}')
         return False
 
@@ -160,7 +160,7 @@ def get_curr_ids(tids, offset):
         curr_ids = tids[offset:]
     return list(set(curr_ids))
 
-def get_valid_tracks(results, sp):
+def get_valid_tracks(results):
     '''Ensures track integrity by removing local and no-id tracks.  Creates dict with valid tracks'''
     valid_tracks = OrderedDict()
     tracks = results['tracks']
@@ -171,12 +171,10 @@ def get_valid_tracks(results, sp):
     return valid_tracks
 
 def is_valid(track):
-    ''' Helper for parse_tracks '''
+    ''' Helper for parse_tracks.  Ensures TID present and track not local '''
     try:
         tid = track['track']['id']
-        if track['is_local']:
-            return False
-        return track
+        return not track['is_local']
     except:
         return False
 
