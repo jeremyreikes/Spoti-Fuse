@@ -12,19 +12,15 @@ audio_features = ['danceability', 'energy', 'key', 'loudness', 'mode', 'speechin
 class User():
     def __init__(self):
         self.sp = spotipy.Spotify(auth_manager=auth_manager)
-        self.playlists_meta_data = self.sp.current_user_playlists()
         self.saved_tracks, self.new_artists  = fetch_library(self.sp)
-        self.playlist_ids = self.get_playlist_ids()
-        self.df = self.prep_df(self.saved_tracks)
-        self.playlists = self.add_playlists(self.playlist_ids)
+        self.saved_tracks_df = self.prep_df(self.saved_tracks)
+        self.playlists_meta_data = self.sp.current_user_playlists()
+        self.playlist_dfs = self.add_playlists()
 
-    def get_playlist_ids(self):
-        ids = []
+    def add_playlists(self):
+        playlist_ids = []
         for playlist in self.playlists_meta_data['items']:
-            ids.append(playlist['id'])
-        return ids
-
-    def add_playlists(self, playlist_ids):
+            playlist_ids.append(playlist['id'])
         playlists = []
         for pid in playlist_ids:
             if db.playlist_exists(pid):
@@ -34,9 +30,16 @@ class User():
             playlist = db.get_playlist(pid)
             if playlist:
                 playlist_tracks = [db.get_track(tid) for tid in playlist['tids']]
+                if not playlist_tracks:
+                    continue
                 playlist['playlist_tracks'] = playlist_tracks
+                playlist['playlist_df'] = self.prep_df(playlist_tracks)
                 playlists.append(playlist)
         return playlists
+
+    # def playlists_to_dfs(self):
+    #     for playlist in self.playlists:
+    #         data = self.prep_df(playlist['playlist_tracks'])
 
     def convert_duration_to_seconds(self, millis):
         seconds = (millis/1000) % 60
@@ -55,20 +58,29 @@ class User():
         else:
             return 'Unknown'
 
+    def id_to_artist_info(self, artist_ids):
+        artists_info = []
+        for artist_id in artist_ids:
+            artist = db.get_artist(artist_id)
+            if not artist:
+                for new_artist in self.new_artists:
+                    if new_artist['_id'] == artist_id:
+                        artist = new_artist
+            genres = ', '.join(artist['genres'])
+            name = artist['name']
+            artists_info.append([name, genres])
+        return pd.DataFrame(artists_info)
+
     def prep_df(self, tracks):
         data = pd.DataFrame(tracks)
-        if 'lyrics' in data.columns:
-            data = data.drop('lyrics', axis=1)
-
         data.duration = data.duration.apply(self.convert_duration_to_seconds)
         data = data.reindex(columns = data.columns.tolist() + audio_features)
-        unpacked_audio_features = pd.DataFrame.from_records(data.audio_features)
-        data[audio_features] = unpacked_audio_features
-        data['artist'] = data['artist_id'].apply(lambda x: db.get_artist(x)['name'])
+        data[audio_features] = pd.DataFrame.from_records(data.audio_features)
+        data[['artist', 'artist_genres']] = self.id_to_artist_info(list(data['artist_id']))
         data['key'] = data['mode'].apply(self.convert_mode)
-        data = data[['name', 'artist', 'duration', 'key', 'explicit', 'danceability', 'energy', 'loudness',
+        data = data[['name', 'artist', 'duration', 'artist_genres', 'key', 'explicit', 'danceability', 'energy', 'loudness',
                      'speechiness', 'acousticness', 'instrumentalness', 'liveness', 'valence', 'time_signature']]
         return data
 
 user = User()
-user.df
+user.saved_tracks_df
