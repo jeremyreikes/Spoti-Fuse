@@ -10,12 +10,13 @@ auth_manager = spotipy.oauth2.SpotifyOAuth(client_id = api_keys.spotify_client_i
 audio_features = ['danceability', 'energy', 'key', 'loudness', 'mode', 'speechiness', 'acousticness',
                   'instrumentalness', 'liveness', 'valence', 'tempo', 'duration_ms', 'time_signature']
 class User():
-    def __init__(self):
+    # subset for testing purposes.  delete from __init__ and parse_library before going live
+    def __init__(self, subset=False):
         self.sp = spotipy.Spotify(auth_manager=auth_manager)
-        self.saved_tracks, self.new_artists  = fetch_library(self.sp)
+        self.saved_tracks, self.new_artists  = fetch_library(self.sp, subset=subset)
         self.saved_tracks_df = self.prep_df(self.saved_tracks)
         self.playlists_meta_data = self.sp.current_user_playlists()
-        self.playlist_dfs = self.add_playlists()
+        self.playlists = self.add_playlists()
 
     def add_playlists(self):
         playlist_ids = []
@@ -33,7 +34,7 @@ class User():
                 if not playlist_tracks:
                     continue
                 playlist['playlist_tracks'] = playlist_tracks
-                playlist['playlist_df'] = self.prep_df(playlist_tracks)
+                playlist['df'] = self.prep_df(playlist_tracks)
                 playlists.append(playlist)
         return playlists
 
@@ -81,6 +82,3 @@ class User():
         data = data[['name', 'artist', 'duration', 'artist_genres', 'key', 'explicit', 'danceability', 'energy', 'loudness',
                      'speechiness', 'acousticness', 'instrumentalness', 'liveness', 'valence', 'time_signature']]
         return data
-
-user = User()
-user.saved_tracks_df
