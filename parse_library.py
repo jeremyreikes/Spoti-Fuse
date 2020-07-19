@@ -6,10 +6,13 @@ import datetime
 import parse_playlist
 from collections import OrderedDict
 
-def get_valid_tracks(sp, results):
+# delete subset when done with testing
+def get_valid_tracks(sp, results, subset=None):
     '''Ensures track integrity by removing local and no-id tracks.  Creates dict with valid tracks'''
     valid_tracks = OrderedDict()
     valid_tracks = remove_invalid_tracks(results['items'], valid_tracks)
+    if subset:
+        return valid_tracks
     while results['next']:
         results = sp.next(results)
         valid_tracks = remove_invalid_tracks(results['items'], valid_tracks)
@@ -42,15 +45,17 @@ def initialize_track(track):
     track_data['artist_id'] = track_info['artists'][0]['id']
     return track_data
 
+# remove subset
 def fetch_library(sp):
     results = sp.current_user_saved_tracks()
-    valid_tracks = get_valid_tracks(sp, results)
+    valid_tracks = get_valid_tracks(sp, results, subset=True)
 
     new_tracks = list() # playlist tracks that don't exist in DB
+    indices_to_add_new_tracks = list()
     new_artists = set()
-    library_tids = list() # playlist tracks that already exist or are initialized without error
+    saved_tracks = list() # playlist tracks that already exist or are initialized without error
 
-    for tid, track in valid_tracks.items():
+    for index, (tid, track) in enumerate(valid_tracks.items()):
         if not db.track_exists(tid):
             try:
                 track_data = initialize_track(track)
@@ -58,13 +63,17 @@ def fetch_library(sp):
                 if not db.artist_exists(artist_id):
                     new_artists.add(artist_id)
                 new_tracks.append(track_data)
-                library_tids.append(tid)
+                indices_to_add_new_tracks.append(index)
+                saved_tracks.append(0)
             except:
                 print(f'Error initializing track {tid}')
                 continue
         else:
-            library_tids.append(tid)
+            track_data = db.get_track(tid)
+            saved_tracks.append(track_data)
     new_tracks = parse_playlist.add_audio_features(new_tracks)
+    # print(len(new_tracks), ' ', len(indices_to_add_new_tracks), ' ', len(saved_tracks))
+    for track, index in zip(new_tracks, indices_to_add_new_tracks):
+        saved_tracks[index] = track
     new_artists = parse_playlist.fetch_artist_info(new_artists)
-
-    return new_tracks, library_tids, new_artists
+    return saved_tracks, new_artists
