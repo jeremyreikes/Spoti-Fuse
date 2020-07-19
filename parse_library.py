@@ -7,7 +7,7 @@ import parse_playlist
 from collections import OrderedDict
 
 # delete subset when done with testing
-def get_valid_tracks(sp, results, subset=None):
+def get_valid_tracks(sp, results, subset=False):
     '''Ensures track integrity by removing local and no-id tracks.  Creates dict with valid tracks'''
     valid_tracks = OrderedDict()
     valid_tracks = remove_invalid_tracks(results['items'], valid_tracks)
@@ -46,9 +46,9 @@ def initialize_track(track):
     return track_data
 
 # remove subset
-def fetch_library(sp):
+def fetch_library(sp, subset=False):
     results = sp.current_user_saved_tracks()
-    valid_tracks = get_valid_tracks(sp, results, subset=True)
+    valid_tracks = get_valid_tracks(sp, results, subset=subset)
 
     new_tracks = list() # playlist tracks that don't exist in DB
     indices_to_add_new_tracks = list()

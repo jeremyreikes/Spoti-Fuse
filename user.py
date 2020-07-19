@@ -38,15 +38,11 @@ class User():
                 playlists.append(playlist)
         return playlists
 
-    # def playlists_to_dfs(self):
-    #     for playlist in self.playlists:
-    #         data = self.prep_df(playlist['playlist_tracks'])
-
     def convert_duration_to_seconds(self, millis):
         seconds = (millis/1000) % 60
-        seconds = round(seconds)
+        seconds = int(seconds)
         minutes = millis / (1000*60)
-        minutes = round(minutes)
+        minutes = int(minutes)
         if seconds // 10 == 0:
             seconds = '0' + str(seconds)
         return str(minutes) + ':' + str(seconds)
