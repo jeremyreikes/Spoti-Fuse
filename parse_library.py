@@ -36,9 +36,12 @@ def remove_invalid_tracks(tracks, valid_tracks):
 
 def initialize_track(track):
     track_data = dict()
+    track_data['added_at'] = track['added_at']
     track_info = track['track']
     track_data['name'] = track_info['name']
     track_data['name_lemmas'] = parse_playlist.lemmatize(track_data['name'])
+    track_data['album_name'] = track_info['album']['name']
+    track_data['album_id'] = track_info['album']['id']
     track_data['_id'] = track_info['id']
     track_data['explicit'] = track_info['explicit']
     track_data['duration'] = track_info['duration_ms']
@@ -46,9 +49,13 @@ def initialize_track(track):
     return track_data
 
 # remove subset
-def fetch_library(sp, subset=False):
-    results = sp.current_user_saved_tracks()
-    valid_tracks = get_valid_tracks(sp, results, subset=subset)
+def fetch_playlist(sp, subset=False, playlist_id=None, library=False):
+    if playlist_id:
+        results = sp.playlist(playlist_id)
+        valid_tracks = get_valid_tracks(sp, results['tracks'], subset=subset)
+    elif library:
+        results = sp.current_user_saved_tracks()
+        valid_tracks = get_valid_tracks(sp, results, subset=subset)
 
     new_tracks = list() # playlist tracks that don't exist in DB
     indices_to_add_new_tracks = list()
@@ -76,4 +83,5 @@ def fetch_library(sp, subset=False):
     for track, index in zip(new_tracks, indices_to_add_new_tracks):
         saved_tracks[index] = track
     new_artists = parse_playlist.fetch_artist_info(new_artists)
+
     return saved_tracks, new_artists

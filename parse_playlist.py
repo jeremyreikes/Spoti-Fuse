@@ -9,8 +9,11 @@ client_credentials_manager = SpotifyClientCredentials(client_id=api_keys.spotify
                                                       client_secret=api_keys.spotify_client_secret)
 sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 useless_features = ['type', 'uri', 'track_href', 'analysis_url', 'id']
+max_tracks_per_call = 50
 
-def fetch_playlist(playlist_id, allow_every=False):
+
+# add album_id, added_at date
+def fetch_playlist(playlist_id, allow_every=False, for_user=False):
     if playlist_id == '' or playlist_id == None:
         print(f'Invalid PID: {playlist_id}')
         return False
@@ -39,7 +42,7 @@ def fetch_playlist(playlist_id, allow_every=False):
     for tid, track in valid_tracks.items():
         if not db.track_exists(tid):
             try:
-                track_data = initialize_track(track, playlist_id)
+                track_data = initialize_track(track, playlist_id, for_user=for_user)
                 artist_id = track_data['artist_id']
                 if not db.artist_exists(artist_id):
                     artists_to_add.add(artist_id)
@@ -63,8 +66,8 @@ def fetch_playlist(playlist_id, allow_every=False):
 
 def add_audio_features(tracks_to_add):
     tids = [track['_id'] for track in tracks_to_add]
-    for i in range((len(tids) // 50) + 1):
-        offset = i*50
+    for i in range((len(tids) // max_tracks_per_call) + 1):
+        offset = i*max_tracks_per_call
         curr_ids = get_curr_ids(tids, offset)
         if len(curr_ids) == 0:
             break
@@ -85,28 +88,32 @@ def add_audio_features(tracks_to_add):
                 tracks_to_add[offset + index - 1]['audio_features'] = curr_features
     return tracks_to_add
 
-def initialize_track(track, playlist_id):
+def initialize_track(track, playlist_id, for_user=False):
     track_data = dict()
     track_info = track['track']
     track_data['name'] = track_info['name']
     track_data['name_lemmas'] = lemmatize(track_data['name'])
     track_data['_id'] = track_info['id']
+    track_data['album_name'] = track_info['album']['name']
+    track_data['album_id'] = track_info['album']['id']
     track_data['explicit'] = track_info['explicit']
     track_data['duration'] = track_info['duration_ms']
     track_data['artist_id'] = track_info['artists'][0]['id']
     track_data['pids'] = list([playlist_id])
+    if for_user:
+        track_data['added_at'] = track['added_at']
     return track_data
 
 def fetch_artist_info(artist_ids):
     artist_ids = list(artist_ids)
     artists_data = list()
-    for i in range((len(artist_ids) // 50) + 1):
-        offset = i*50
+    for i in range((len(artist_ids) // max_tracks_per_call) + 1):
+        offset = i*max_tracks_per_call
         curr_ids = get_curr_ids(artist_ids, offset)
-        if len(curr_ids) == 0: # in case it's a multiple of 50
+        if len(curr_ids) == 0: # in case it's a multiple of max_tracks_per_call
             break
         try:
-            curr_artists = sp.artists(artist_ids)['artists']
+            curr_artists = sp.artists(curr_ids)['artists']
         except:
             curr_artists = list()
             for curr_id in curr_ids:
@@ -153,12 +160,12 @@ def refetch_unparsed_artists():
         artist_data = retry_fetch_artist_info(artist['_id'])
         db.replace_artist(artist_data)
 
-def get_curr_ids(tids, offset):
+def get_curr_ids(ids, offset):
     try:
-        curr_ids = tids[offset:offset+50]
+        curr_ids = ids[offset:offset+max_tracks_per_call]
     except:
-        curr_ids = tids[offset:]
-    return list(set(curr_ids))
+        curr_ids = ids[offset:]
+    return curr_ids
 
 def get_valid_tracks(results):
     '''Ensures track integrity by removing local and no-id tracks.  Creates dict with valid tracks'''

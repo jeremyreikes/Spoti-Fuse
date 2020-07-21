@@ -50,6 +50,7 @@ def add_tweets_to_all_tracks():
     for track in all_tweetless_tracks:
         add_tweets(track['_id'])
 
+
 # Uncomment to build database from spotify api, uncomment reparse_unparsed_entities to ensure database integrity
 # refetch_unparsed_artists()
 # build_database(all_files)

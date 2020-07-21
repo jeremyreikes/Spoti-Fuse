@@ -85,7 +85,7 @@ def get_unparsed_artists():
 def get_unparsed_artist_count():
     unparsed_artists = get_unparsed_artists()
     return unparsed_artists.count()
-    
+
 # Use search_word to specify songs from playlists with a particular word in the title
 def get_track_frequencies(search_words):
     # dict - word, counter
