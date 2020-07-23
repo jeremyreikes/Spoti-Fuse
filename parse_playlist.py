@@ -11,14 +11,12 @@ sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 useless_features = ['type', 'uri', 'track_href', 'analysis_url', 'id']
 max_tracks_per_call = 50
 
-
-# add album_id, added_at date
-def fetch_playlist(playlist_id, allow_every=False, for_user=False):
+def fetch_playlist(playlist_id, allow_every=False):
     if playlist_id == '' or playlist_id == None:
         print(f'Invalid PID: {playlist_id}')
         return False
     try:
-        results = sp.user_playlist(playlist_id = playlist_id, user=None)
+        results = sp.playlist(playlist_id = playlist_id)
         description = results['description']
         name = results['name']
         owner = results['owner']['id']
@@ -29,7 +27,7 @@ def fetch_playlist(playlist_id, allow_every=False, for_user=False):
         print(f'Invalid PID: {playlist_id}')
         return False
 
-    valid_tracks = get_valid_tracks(results)
+    valid_tracks = get_valid_tracks(sp, results['tracks'])
     playlist_length = len(valid_tracks)
     if not allow_every and (playlist_length > 2000 or playlist_length <= 1 or desc_lang != 'en' or name_lang != 'en'):
         print(f'Too many/few tracks or not english {playlist_id}')
@@ -42,10 +40,11 @@ def fetch_playlist(playlist_id, allow_every=False, for_user=False):
     for tid, track in valid_tracks.items():
         if not db.track_exists(tid):
             try:
-                track_data = initialize_track(track, playlist_id, for_user=for_user)
-                artist_id = track_data['artist_id']
-                if not db.artist_exists(artist_id):
-                    artists_to_add.add(artist_id)
+                track_data = initialize_track(track, playlist_id)
+                artist_ids = track_data['artist_ids']
+                for artist_id in artists_ids:
+                    if not db.artist_exists(artist_id):
+                        artists_to_add.add(artist_id)
                 tracks_to_add.append(track_data)
                 playlist_tids.append(tid)
             except:
@@ -63,6 +62,42 @@ def fetch_playlist(playlist_id, allow_every=False, for_user=False):
     db.insert_tracks(tracks_to_add)
     db.insert_playlist(playlist_to_add)
     return True # returns True if it successfully adds playlist to db, False otherwise
+
+def fetch_user_playlist(sp, playlist_id=None, library=False):
+    if playlist_id:
+        results = sp.playlist(playlist_id)
+        valid_tracks = get_valid_tracks(sp, results['tracks'])
+    elif library:
+        results = sp.current_user_saved_tracks()
+        valid_tracks = get_valid_tracks(sp, results)
+
+    new_tracks = list() # playlist tracks that don't exist in DB
+    indices_to_add_new_tracks = list()
+    new_artists = set()
+    saved_tracks = list() # playlist tracks that already exist or are initialized without error
+
+    for index, (tid, track) in enumerate(valid_tracks.items()):
+        if not db.track_exists(tid):
+            try:
+                track_data = initialize_track(track, for_user=True)
+                artist_ids = track_data['artist_ids']
+                for artist_id in artist_ids:
+                    if not db.artist_exists(artist_id):
+                        new_artists.add(artist_id)
+                new_tracks.append(track_data)
+                indices_to_add_new_tracks.append(index)
+                saved_tracks.append(0)
+            except:
+                print(f'Error initializing track {tid}')
+                continue
+        else:
+            track_data = db.get_track(tid)
+            saved_tracks.append(track_data)
+    new_tracks = add_audio_features(new_tracks)
+    for track, index in zip(new_tracks, indices_to_add_new_tracks):
+        saved_tracks[index] = track
+    new_artists = fetch_artist_info(new_artists)
+    return saved_tracks, new_artists
 
 def add_audio_features(tracks_to_add):
     tids = [track['_id'] for track in tracks_to_add]
@@ -83,12 +118,13 @@ def add_audio_features(tracks_to_add):
                     audio_features.append({})
         for index, curr_features in enumerate(audio_features):
             if curr_features:
+                tracks_to_add[offset+index-1]['analysis_url'] = curr_features['analysis_url']
                 for feature in useless_features:
                     del curr_features[feature]
                 tracks_to_add[offset + index - 1]['audio_features'] = curr_features
     return tracks_to_add
 
-def initialize_track(track, playlist_id, for_user=False):
+def initialize_track(track, playlist_id=None, for_user=False):
     track_data = dict()
     track_info = track['track']
     track_data['name'] = track_info['name']
@@ -98,10 +134,11 @@ def initialize_track(track, playlist_id, for_user=False):
     track_data['album_id'] = track_info['album']['id']
     track_data['explicit'] = track_info['explicit']
     track_data['duration'] = track_info['duration_ms']
-    track_data['artist_id'] = track_info['artists'][0]['id']
-    track_data['pids'] = list([playlist_id])
+    track_data['artist_ids'] = [artist['id'] for artist in track_info['artists']]
     if for_user:
         track_data['added_at'] = track['added_at']
+    else:
+        track_data['pids'] = list([playlist_id])
     return track_data
 
 def fetch_artist_info(artist_ids):
@@ -167,10 +204,9 @@ def get_curr_ids(ids, offset):
         curr_ids = ids[offset:]
     return curr_ids
 
-def get_valid_tracks(results):
+def get_valid_tracks(sp, tracks):
     '''Ensures track integrity by removing local and no-id tracks.  Creates dict with valid tracks'''
     valid_tracks = OrderedDict()
-    tracks = results['tracks']
     valid_tracks = remove_invalid_tracks(tracks, valid_tracks)
     while tracks['next']:
         tracks = sp.next(tracks)
@@ -181,7 +217,7 @@ def is_valid(track):
     ''' Helper for parse_tracks.  Ensures TID present and track not local '''
     try:
         tid = track['track']['id']
-        return not track['is_local']
+        return not track['track']['is_local']
     except:
         return False
 
