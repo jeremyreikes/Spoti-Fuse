@@ -9,6 +9,7 @@ artists_db = spotify_db.artists_db
 from collections import Counter
 from nlp_helpers import lemmatize
 
+
 def track_exists(tid):
     return tracks_db.count_documents({'_id': tid}, limit=1) == 1
 
@@ -80,7 +81,7 @@ def get_tracks_without_tweets():
 # Spotify API sometimes fails and returns a 404 on an artist, but then it will work the next day
 # Run get_unparsed_artists_count() every once in a while to verify that all artists are parsed
 def get_unparsed_artists():
-    return artists_db.find({'name': {'$exists': False}}, {})
+    return artists_db.find({'name': ''}, {})
 
 def get_unparsed_artist_count():
     unparsed_artists = get_unparsed_artists()
