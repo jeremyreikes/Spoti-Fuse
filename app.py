@@ -5,10 +5,16 @@ from dash.dependencies import Input, Output, State
 import dash_html_components as html
 from user import User
 import pandas as pd
+import pickle
+from naive_playlist_recommendation import recommend_tracks
 
 user = User()
+# # Uncomment to pick new users
+# pickle.dump(user, open('user.p', 'wb'))
+# user = pickle.load(open('user.p', 'rb'))
 playlists = {playlist['name']: playlist['df'] for playlist in user.playlists}
 playlists['Liked Songs'] = user.saved_tracks_df
+
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
@@ -21,26 +27,26 @@ app.layout = html.Div(children=[
         value= 'Liked Songs',
         clearable=False
     ),
+    dcc.Input(
+        id = 'search_term_input',
+        type='text',
+        placeholder='Enter A Search Term'
+    ),
+    html.Button('Search', id='search-term-button', n_clicks=0),
     dash_table.DataTable(
         id='table',
         data = playlists['Liked Songs'].to_dict('records'),
         columns = [{"name": i, "id": i} for i in playlists['Liked Songs'].columns],
         derived_virtual_indices = [],
-        hidden_columns=['_id'],
+        hidden_columns=['_id', 'Pids'],
         filter_action="native",
         page_size=500,
         sort_action="native",
         sort_mode="multi",
+        style_as_list_view=True,
         css=[{"selector": ".show-hide", "rule": "display: none"}],
-        # page_action="native",
-        style_header= {
-
-        },
         style_cell={'textAlign': 'left',
                     'maxWidth': '250px',
-                    # 'color': '#191414',
-                    # 'height': 'auto',
-                    # 'overflow': 'ellipsis',
                     'textOverflow': 'ellipsis'
         },
         style_cell_conditional=[
@@ -59,25 +65,11 @@ app.layout = html.Div(children=[
             {'if': {'column_id': 'Explicit'},
              'minWidth': '80px'}
         ]
-
-        # style_cell_conditional=[
-        #     {'if': {'column_id': 'Name'},
-        #      'width': '100px'},
-        #     {'if': {'column_id': 'Album'},
-        #      'width': '100px'},
-        # ],
-        # style_cell={
-        # 'backgroundColor': 'rgb(25, 20, 20)',
-        # 'color': 'white'
-        # },
-        # style_table = {
-        #     'color': '#191414'
-        # }
-
     ),
     dcc.Input(id='playlist_name_input', type='text', placeholder='Enter a playlist name'),
     html.Div(id='output'),
     html.Button('Add Playlist', id='add_playlist', n_clicks=0),
+    html.Div(id='filler')
 ])
 
 @app.callback(
@@ -115,6 +107,37 @@ def add_playlist(n_clicks, playlist_name, derived_virtual_indices, df_name):
         return "", "Please Enter a Playlist Name", options, df_name
     else:
         return "", None, options, df_name
+
+#
+# @app.callback(
+#     # [Output('table', 'data'), Output('table', 'columns')],
+#     Output('demo-dropdown', 'value'),
+#     [Input('search-term-button', 'n_clicks')],
+#     [State('search_term_input', 'value'),
+#      State('table', 'derived_virtual_indices'),
+#      State('demo-dropdown', 'value')]
+# )
+# def add_search_word_score(n_clicks, search_words, derived_virtual_indices, df_name):
+#     if n_clicks >= 1 and search_words:
+#         scores = []
+#         track_ids = list(playlists[df_name].loc[derived_virtual_indices, '_id'])
+#         recs = recommend_tracks(search_words, min_occurences=1, tid_subset=track_ids)
+#         for track_id in track_ids:
+#             if track_id in recs:
+#                 scores.append(recs[track_id])
+#             else:
+#                 scores.append(0)
+#         playlists[df_name].insert(7, 'Search Score', scores, True)
+#         # data = playlists[df_name]['Search Score'].to_dict('records')
+#         # columns = [{"name": i, "id": i} for i in playlists[df_name].columns]
+#         # return data, columns
+#     # else:
+#         # return playlists['Liked Songs'].to_dict('records'), [{"name": i, "id": i} for i in playlists['Liked Songs'].columns]
+#     # data = playlists[df_name]['Search Score'].to_dict('records')
+#     # columns = [{"name": i, "id": i} for i in playlists[df_name].columns]
+#     # return df_name#, columns
+#     return df_name
+
 
 if __name__ == '__main__':
     app.run_server(debug=True)
