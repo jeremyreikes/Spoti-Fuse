@@ -1,5 +1,5 @@
 from tqdm import tqdm
-from parse_playlist import fetch_playlist, refetch_unparsed_artists
+from parse_playlist import fetch_playlist
 import database_querying as db
 import csv
 path = '/Users/jeremyreikes/Desktop/Spoti-Fuse/pid_raw_data' # use your path
@@ -51,6 +51,4 @@ def add_tweets_to_all_tracks():
         add_tweets(track['_id'])
 
 
-# Uncomment to build database from spotify api, uncomment reparse_unparsed_entities to ensure database integrity
-# refetch_unparsed_artists()
-# build_database(all_files)
+build_database(all_files)

@@ -9,7 +9,6 @@ artists_db = spotify_db.artists_db
 from collections import Counter
 from nlp_helpers import lemmatize
 
-
 def track_exists(tid):
     return tracks_db.count_documents({'_id': tid}, limit=1) == 1
 
@@ -88,7 +87,7 @@ def get_unparsed_artist_count():
     return unparsed_artists.count()
 
 # Use search_word to specify songs from playlists with a particular word in the title
-def get_track_frequencies(search_words):
+def get_track_frequencies(search_words, tid_subset=None):
     # dict - word, counter
     word_track_frequencies = dict()
     lemmas = lemmatize(search_words)
@@ -98,7 +97,10 @@ def get_track_frequencies(search_words):
         for playlist in playlists:
             tids = playlist['tids']
             for tid in tids:
-                frequencies[tid] += 1
+                if tid_subset and tid in tid_subset:
+                    frequencies[tid] += 1
+                elif not tid_subset:
+                    frequencies[tid] += 1
         word_track_frequencies[lemma] = frequencies
     return word_track_frequencies
 

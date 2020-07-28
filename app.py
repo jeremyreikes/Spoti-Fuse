@@ -22,8 +22,8 @@ app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 app.layout = html.Div(children=[
     html.H1(children='SpotiFuse', style={'color': '#1DB954'}),
     dcc.Store(
-        id = 'store',
-        data = playlists
+        id = 'df-memory',
+        data= playlists['Liked Songs'].to_dict('records')
     ),
     dcc.Dropdown(
         id='demo-dropdown',
@@ -37,7 +37,7 @@ app.layout = html.Div(children=[
         type='text',
         placeholder='Enter A Search Term'
     ),
-    html.Button('Search', id='search-term-button', n_clicks=0),
+    html.Button('Search', id='search-term-button'),
     dash_table.DataTable(
         id='table',
         # data = playlists['Liked Songs'].to_dict('records'),
@@ -73,22 +73,33 @@ app.layout = html.Div(children=[
     ),
     dcc.Input(id='playlist_name_input', type='text', placeholder='Enter a playlist name'),
     html.Button('Add Playlist', id='add_playlist'),
-    html.Div(id='playlist-addition-message')
+    html.Div(id='playlist-addition-message'),
+    html.Div(id='filler')
 ])
+
+# @app.callback(
+#     Output('df-memory', 'data'),
+#     [Input('demo-dropdown', 'value')]
+# )
+# def switch_table(playlist_name):
+#     if playlist_name is None:
+#         raise PreventUpdate
+#     else:
+#         playlist = playlists[playlist_name]
+#         data = playlist.to_dict('records')
+#         return data
 
 @app.callback(
     [Output('table', 'data'), Output('table', 'columns')],
-    [Input('demo-dropdown', 'value')])
-def update_df(playlist_name):
-    if playlist_name is None:
+    [Input('df-memory', 'data')]
+)
+def update_table(data):
+    if data is None:
         raise PreventUpdate
     else:
-        df = playlists[playlist_name]
-        data = df.to_dict('records')
-        columns = [{"name": i, "id": i} for i in df.columns]
+        columns = [{"name": i, "id": i} for i in data[0].keys()]
         return data, columns
 
-# want button push to trigger a input field
 @app.callback(
     [Output('playlist_name_input', 'value'),
      Output('playlist-addition-message', 'children'),
@@ -104,6 +115,8 @@ def add_playlist(n_clicks, playlist_name, derived_virtual_indices, df_name, opti
         raise PreventUpdate
     elif not playlist_name:
         return None, "Please enter a name for your playlist.", options, df_name
+    elif not df_name:
+        return None, "Please select a playlist.", options, df_name
     else:
         user_id = user.sp.me()['id']
         playlist = user.sp.user_playlist_create(user_id, playlist_name)
@@ -114,34 +127,40 @@ def add_playlist(n_clicks, playlist_name, derived_virtual_indices, df_name, opti
         options.append({'label': playlist_name, 'value': playlist_name})
         return None, f"\"{playlist_name}\" Added!", options, playlist_name
 
-# #
 @app.callback(
-    [Output('table', 'data'), Output('table', 'columns')],
-    # Output('demo-dropdown', 'value'),
-    [Input('search-term-button', 'n_clicks')],
+    Output('df-memory', 'data'),
+    [Input('search-term-button', 'n_clicks'),
+     Input('demo-dropdown', 'value')],
     [State('search_term_input', 'value'),
      State('table', 'derived_virtual_indices'),
-     State('demo-dropdown', 'value')]
+     State('df-memory', 'data')]
 )
-def add_search_word_score(n_clicks, search_words, derived_virtual_indices, df_name):
-    if n_clicks >= 1 and search_words:
+def change_or_modify_table(search_n_clicks, dropdown_playlist_name, search_words, derived_virtual_indices, data):
+    ctx = dash.callback_context
+    print(ctx.triggered)
+    triggered = ctx.triggered[0]['prop_id'].split('.')[0]
+    if 'demo-dropdown' == triggered:
+        playlist_name = ctx.triggered[0]['value']
+        playlist = playlists[dropdown_playlist_name]
+        data = playlist.to_dict('records')
+        return data
+    elif 'search-term-button' == triggered and search_words:
         scores = []
-        track_ids = playlists[df_name].loc[derived_virtual_indices, '_id'].tolist()
+        temp_df = pd.DataFrame.from_records(data)
+        track_ids = temp_df.loc[derived_virtual_indices, '_id'].tolist()
         recs = recommend_tracks(search_words, min_occurences=1, tid_subset=track_ids)
         for track_id in track_ids:
             if track_id in recs:
                 scores.append(recs[track_id])
             else:
                 scores.append(0)
-        playlists[df_name].insert(7, 'Search Score', scores, True)
-        data = playlists[df_name].to_dict('records')
-        columns = [{"name": i, "id": i} for i in playlists[df_name].columns]
-        return data, columns
+        if 'Search Score' in temp_df.columns:
+            temp_df['Search Score'] = scores
+        else:
+            temp_df.insert(7, 'Search Score', scores, True)
+        return temp_df.to_dict('records')
     else:
         raise PreventUpdate
-    data = playlists[df_name]['Search Score'].to_dict('records')
-    columns = [{"name": i, "id": i} for i in playlists[df_name].columns]
-    return df_name#, columns
 
 
 if __name__ == '__main__':

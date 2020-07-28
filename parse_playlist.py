@@ -129,10 +129,11 @@ def initialize_track(track, playlist_id=None, for_user=False):
     track_data['explicit'] = track_info['explicit']
     track_data['duration'] = track_info['duration_ms']
     track_data['artist_ids'] = [artist['id'] for artist in track_info['artists']]
+    track_data['pids'] = list()
     if for_user:
         track_data['added_at'] = track['added_at']
     else:
-        track_data['pids'] = list([playlist_id])
+        track_data['pids'].append(playlist_id)
     return track_data
 
 def fetch_artist_info(artist_ids):

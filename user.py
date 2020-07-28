@@ -75,11 +75,11 @@ class User():
         data[['artist', 'genres']] = self.id_to_artist_info(list(data['artist_ids']))
         data['key'] = data['mode'].apply(self.convert_mode)
         data['Date Added'] = data['added_at'].apply(lambda x: x[:10])
-        data = data[['_id', 'name', 'artist', 'album_name', 'Date Added', 'duration', 'genres', 'danceability', 'energy', 'loudness',
+        data = data[['_id', 'pids', 'name', 'artist', 'album_name', 'Date Added', 'duration', 'genres', 'danceability', 'energy', 'loudness',
                      'speechiness', 'acousticness', 'instrumentalness', 'liveness', 'valence', 'time_signature', 'key', 'explicit']]
         data.columns = [name.capitalize() for name in list(data.columns)]
         data = data.rename(columns={'Album_name': 'Album', 'Time_signature': 'Time Sig.', 'Instrumentalness': 'Instr.', 'Speechiness': 'Speechy',
                                     'Danceability': 'Dance', 'Acousticness': 'Acoustic'})
         return data
 
-user = User()
+# user = User()
