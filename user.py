@@ -66,7 +66,7 @@ class User():
             artists_info.append([curr_artist_names, genres])
         return pd.DataFrame(artists_info)
 
-    def prep_df(self, tracks):
+    def prep_df(self, tracks, trim_added_at=False):
         data = pd.DataFrame(tracks)
         data.duration = data.duration.apply(self.convert_duration_to_seconds)
         data = data.reindex(columns = data.columns.tolist() + audio_features)
@@ -74,12 +74,14 @@ class User():
         data[audio_features] = data[audio_features].applymap(lambda x: round(x, 2))
         data[['artist', 'genres']] = self.id_to_artist_info(list(data['artist_ids']))
         data['key'] = data['mode'].apply(self.convert_mode)
-        data['Date Added'] = data['added_at'].apply(lambda x: x[:10])
+        data['explicit'] = data['explicit'].astype(str)
+        if trim_added_at:
+            data['Date Added'] = 'Not Yet Added'
+        else:
+            data['Date Added'] = data['added_at'].apply(lambda x: x[:10])
         data = data[['_id', 'pids', 'name', 'artist', 'album_name', 'Date Added', 'duration', 'genres', 'danceability', 'energy', 'loudness',
-                     'speechiness', 'acousticness', 'instrumentalness', 'liveness', 'valence', 'time_signature', 'key', 'explicit']]
+                 'speechiness', 'acousticness', 'instrumentalness', 'liveness', 'valence', 'time_signature', 'key', 'explicit']]
         data.columns = [name.capitalize() for name in list(data.columns)]
-        data = data.rename(columns={'Album_name': 'Album', 'Time_signature': 'Time Sig.', 'Instrumentalness': 'Instr.', 'Speechiness': 'Speechy',
+        data = data.rename(columns={'Album_name': 'Album', 'Time_signature': 'Sig.', 'Instrumentalness': 'Instr.', 'Speechiness': 'Speechy',
                                     'Danceability': 'Dance', 'Acousticness': 'Acoustic'})
         return data
-
-# user = User()

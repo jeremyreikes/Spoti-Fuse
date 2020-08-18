@@ -108,5 +108,8 @@ def get_track_frequencies(search_words, tid_subset=None):
 def get_track_info(tid):
     track = tracks_db.find_one({'_id': tid})
     title = track['name']
-    artist = artists_db.find_one({'_id': track['artist_id']})
-    return (title, artist['name'])
+    artist_names = list()
+    for artist_id in track['artist_ids']:
+        artist = artists_db.find_one({'_id': artist_id})
+        artist_names.append(artist['name'])
+    return (title, artist_names)

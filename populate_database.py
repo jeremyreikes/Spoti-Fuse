@@ -51,4 +51,4 @@ def add_tweets_to_all_tracks():
         add_tweets(track['_id'])
 
 
-build_database(all_files)
+# build_database(all_files)

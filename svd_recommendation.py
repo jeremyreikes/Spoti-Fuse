@@ -2,8 +2,6 @@ from sklearn.feature_extraction.text import CountVectorizer
 import database_querying as db
 from sklearn.metrics.pairwise import linear_kernel, cosine_similarity
 from populate_database import add_playlist
-import surprise
-from scipy.sparse.linalg import svds
 import numpy as np
 import scipy
 
@@ -74,7 +72,7 @@ class SVD:
                     self.pid_index.append(pid)
                     row_to_add = self.create_playlist_doc(pid, self.cv)
                     self.csr_mat = scipy.sparse.vstack((self.csr_mat, row_to_add))
-                    self.u, self.s, self.v = svds(self.csr_mat.astype('float'), k = k)
+                    self.u, self.s, self.v = scipy.sparse.linalg.svds(self.csr_mat.astype('float'), k = k)
                     row_to_compare = -1
                 else:
                     row_to_compare = self.pid_index.index(pid)
