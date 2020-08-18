@@ -5,11 +5,10 @@ from populate_database import add_playlist
 import numpy as np
 import scipy
 
-
 class SVD:
     def __init__(self, k=50):
         self.init_matrix()
-        self.u, self.s, self.v = svds(self.csr_mat.astype('float'), k = k)
+        self.u, self.s, self.v = scipy.sparse.linalg.svds(self.csr_mat.astype('float'), k = k)
 
     def prep_playlists(self):
         playlist_docs = list()
@@ -64,7 +63,7 @@ class SVD:
             recommended_tracks.append(track)
         return recommended_tracks
 
-    def get_recommendations(self, tid=None, pid=None, n=5):
+    def get_recommendations(self, tid=None, pid=None, n=5, k=50):
         if pid:
             valid_playlist = add_playlist(pid)
             if valid_playlist:
@@ -90,8 +89,14 @@ class SVD:
         else:
             print(f'Please enter a Playlist or Track ID')
             return None
-        related_indices = self.similarities[0].argsort()[-2:-3-n:-1] # this slice gets the top 5 most similar playlists (most similar is same playlist)
+        related_indices = self.similarities[0].argsort()[-2:-2-n:-1] # this slice gets the top 5 most similar playlists (most similar is same playlist)
         if pid:
             return self.get_playlist_recs(related_indices)
         if tid:
             return self.get_track_recs(related_indices)
+
+
+svd = SVD()
+recs = svd.get_recommendations(pid='3e938S67Zucv2YVYGH058k')
+recs
+svd.tid_index
